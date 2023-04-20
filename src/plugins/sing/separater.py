@@ -41,12 +41,19 @@ def separate(song_path: Path, output_dir: Path, key: int = 0, locker: Lock = Loc
             # 不调节半音，节省几秒钟
             no_vocals = no_vocals_0key
         else:
-            # 加载伴奏音频文件
-            y, sr = librosa.load(no_vocals_0key, sr=None)
-            # 半音调节
-            y_shifted = librosa.effects.pitch_shift(y, sr=sr, n_steps=key)
-            # 保存音调调节后的伴奏文件
-            sf.write(no_vocals, y_shifted, sr)
+            #获取采样率
+            no_vocals_rate = AudioSegment.from_file(no_vocals_0key)
+            sample_rate = no_vocals_rate.frame_rate
+            #使用FFmpeg进行半音调节
+            os.system(f'ffmpeg -i {no_vocals_0key} -filter:a "asetrate={sample_rate}*2^({key}/12),atempo=1/2^({key}/12),aresample={sample_rate}" {no_vocals}')
+            
+        #貌似用librosa调整后有声音变小音质变差的问题，不知道怎么弄，先直接注释掉了，改用FFmpeg。
+            # # 加载伴奏音频文件
+            # y, sr = librosa.load(no_vocals_0key, sr=None)
+            # # 半音调节
+            # y_shifted = librosa.effects.pitch_shift(y, sr=sr, n_steps=key)
+            # # 保存音调调节后的伴奏文件
+            # sf.write(no_vocals, y_shifted, sr)
 
         if not no_vocals.exists():
             return None
